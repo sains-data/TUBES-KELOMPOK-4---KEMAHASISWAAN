@@ -1,2 +1,15 @@
-# TUBES-KELOMPOK-4---KEMAHASISWAAN
-Tugas Besar Pergudangan Data Kelompok 4
+repository-name/
+  README.md
+  docs/
+    01-requirements/
+      business-requirements.md
+      data-sources.md
+    02-design/
+      ERD.png
+      dimensional-model.png
+      data-dictionary.xlsx
+    presentations/
+sql/
+  schema/
+etl/
+reports/
