@@ -1,0 +1,5 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rules
+Kegiatan_SK,INT,PK,Surrogate Key,"Auto-increment, NOT NULL"
+Nama_Kegiatan,VARCHAR(255),Atribut,Nama lengkap kegiatan,NOT NULL
+Jenis_Kegiatan,VARCHAR(50),Atribut,"Kategori (Seminar, Lomba, Baksos)",Untuk grouping
+Skala_Kegiatan,VARCHAR(20),Atribut,"(Internal, Regional, Nasional, Internasional)",Untuk analisis kualitas

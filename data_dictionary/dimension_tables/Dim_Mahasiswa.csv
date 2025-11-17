@@ -1,0 +1,8 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rules
+Mahasiswa_SK,INT,PK,Surrogate Key (Untuk SCD),"Auto-increment, NOT NULL"
+NIM,VARCHAR,Natural Key,Nomor Induk Mahasiswa,"Unique, SCD Type 1"
+Nama_ Mahasiswa,VARCHAR,Atribut,Nama Lengkap Mahasiswa,
+Fakultas,VARCHAR,Atribut,Fakultas,Untuk drill-down/fifiltering
+Program_Studi,VARCHAR,Atribut,Program Studi,untuk drill-down/filtering
+Tahun_Masuk,INT,Atribut,Tahun Angkatan,Untuk analisi tren
+Status_Aktif,VARCHAR,Atribut,Status keaktifan(aktif/cuti/lulus),SCD Type 2

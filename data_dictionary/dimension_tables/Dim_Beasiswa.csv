@@ -1,0 +1,4 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rules
+Beasiswa_SK,INT,PK,Surrogate Key,"Auto-increment, NOT NULL"
+Nama_Beasiswa,VARCHAR,Atribut,Nama resmi beasiswa,Untuk identifikasi
+Sumber_dana,VARCHAR,Atribut,internal atau eksternal ITERA,Untuk anlisis alokasi dana

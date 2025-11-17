@@ -1,0 +1,5 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rules
+Organisasi_SK,INT,PK,Surrogate Key,"Auto-increment, NOT NULL"
+Nama_Organisasi,VARCHAR(100),Atribut,Nama UKM atau Ormawa,Untuk filtering dan monitoring
+Jenis_Organisasi,VARCHAR(20),Atribut,UKM atau Ormawa,Untuk grouping
+Status_Organisasi,VARCHAR(10),Atribut,Aktif atau Non-aktif,SCD Type 2

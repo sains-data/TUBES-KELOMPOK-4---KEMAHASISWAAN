@@ -1,0 +1,5 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rules
+Tanggal_SK,INT,PK,Surrogate Key (Format YYYYMMDD),NOT NULL
+Tahun,INT,Atribut,Tahun Kalender,Untuk tren tahunan
+Semester,VARCHAR(10),Atribut,Ganjil/Genap,Untuk analisis periodik
+Bulan,INT,Atribut,Nomor Bulan (1-12),Untuk Laporan Bulanan

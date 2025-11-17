@@ -1,0 +1,5 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rules
+Prestasi_SK,INT,PK,Surrogate Key,"Auto-increment, NOT NULL"
+Nama_Penghargaan,VARCHAR(255),Atribut,Nama Penghargaan/Lomba,NOT NULL
+Level_Prestasi,VARCHAR(50),Atribut,"Tingkat capaian (Regional, Nasional, Internasional)",Untuk analisis komprehensif
+Kategori_Prestasi,VARCHAR(50),Atribut,Akademik atau Non-akademik,Untuk filtering
