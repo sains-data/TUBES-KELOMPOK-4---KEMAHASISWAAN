@@ -1,0 +1,6 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rule
+Dana_SK,INT,PK,Surrogate Key untuk transaksi dana,"Auto-increment, NOT NULL"
+Kegiatan_SK,INT,FK,Key ke Dim_Kegiatan,NOT NULL
+Tanggal_SK,INT,FK,Key ke Dim_Tanggal (Tanggal Realisasi),NOT NULL
+Jumlah_Pengajuan,INT,Measure,Total anggaran yang diajukan,"Additif, Mata uang Rupiah"
+Jumlah_Realisasi,INT,Measure,Total dana yang direalisasikan,"Additif, Digunakan untuk efisiensi"

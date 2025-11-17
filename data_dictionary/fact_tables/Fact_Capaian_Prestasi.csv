@@ -1,0 +1,7 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rule
+Prestasi_Fact_SK,INT,PK,Surrogate Key unik untuk setiap capaian,"Auto-increment, NOT NULL"
+Mahasiswa_SK,INT,FK,Key ke Dim_Mahasiswa,NOT NULL
+Prestasi_SK,INT,FK,Key ke Dim_Prestasi,NOT NULL
+Tanggal_SK,INT,FK,Key ke Dim_Tanggal (Tanggal capaian),NOT NULL
+Jumlah_Penghargaan,INT,Measure,Total penghargaan yang dicapai,Nilai selalu 1 (Additif)
+Poin_Prestasi,"DECIMAL (5,2)",Measure,Nilai bobot untuk Prestasi,Semi-Additif

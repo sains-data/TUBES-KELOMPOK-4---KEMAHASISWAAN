@@ -1,0 +1,6 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Business Rule
+Beasiswa_Fact_SK,INT,PK,Surrogate Key untuk penerima beasiswa,"Auto-increment, NOT NULL"
+Mahasiswa_SK,INT,FK,Key ke Dim_Mahasiswa,NOT NULL
+Beasiswa_SK,INT,FK,Key ke Dim_Beasiswa,NOT NULL
+Tanggal_SK,INT,FK,Key ke Dim_Tanggal (Tanggal Mulai/Penerimaan),NOT NULL
+Jumlah_Penerima,INT,Measure,Indikator jumlah penerima beasiswa,Nilai selalu 1 (Additif)

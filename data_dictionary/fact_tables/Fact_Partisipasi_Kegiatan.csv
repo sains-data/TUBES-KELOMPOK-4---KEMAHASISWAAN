@@ -1,0 +1,7 @@
+Kolom,Tipe Data,PK/FK,Deskripsi,Busines Rule
+Partisipasi_SK,INT,PK,Surrogate Key unik,"Auto-increment, NOT NULL"
+Mahasiswa_SK,INT,FK,Key ke Dim_Mahasiswa,NOT NULL
+Kegiatan_SK,INT,FK,Key ke Dim_Kegiatan,NOT NULL
+Organisasi_SK,INT,FK,Key ke Dim_Organisasi,Dapat NULL
+Tanggal_SK,INT,FK,Key ke Dim_Tanggal,NOT NULL
+Jumlah_Partisipan,INT,Measure,Metrik partisipasi,Nilai selalu 1 (Additif)
