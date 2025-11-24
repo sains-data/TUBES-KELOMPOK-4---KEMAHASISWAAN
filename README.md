@@ -1,9 +1,42 @@
-## 📚 Misi 1: Desain Konseptual dan Logikal - Kasus Kemahasiswaan ITERA
-Disusun oleh Kelompok 4 RA:
+# 📚 Data Warehouse Kemahasiswaan ITERA
+
+### Kelompok 4 RA – Sistem Informasi Kemahasiswaan
+
+**Anggota Kelompok:**
+
 1. Adil Aulia Rahma Nurhidayah (122450058)
 2. Rosalia Siregar (123450036)
-3. Muhammad Hanif Dzaky Arifin (123450064) 
-4. Haikal Fransisko Simbolon (123450106) 
+3. Muhammad Hanif Dzaky Arifin (123450064)
+4. Haikal Fransisko Simbolon (123450106)
+
+---
+
+## 🎯 Tujuan Proyek
+
+Membangun **Data Mart Kemahasiswaan ITERA** untuk mendukung:
+
+* Integrasi data mahasiswa, kegiatan, prestasi & beasiswa
+* Analisis berbasis data oleh Unit Kemahasiswaan
+* Pengambilan keputusan strategis
+* Pelaporan yang cepat & akurat
+
+---
+
+## 🚀 Progress Pengerjaan
+
+## 📚 Misi 1: Desain Konseptual dan Logikal - Kasus Kemahasiswaan ITERA
+
+**Deliverables:**
+
+* Analisis proses bisnis & stakeholder
+* KPI & kebutuhan analitik
+* ERD (Konseptual)
+* Star Schema (Dimensional Model)
+* Kamus Data (Fact & Dimension Tables)
+
+Status: **Selesai ✓**
+
+---
 
 ### 📁 Struktur dan Konten Repository GitHub
 Berikut adalah daftar file dan ringkasan konten dari setiap file dalam struktur repository Anda:
@@ -64,3 +97,216 @@ Isi: Kamus data detail untuk setiap Dimension Table (Kolom, Tipe Data, PK/FK/Atr
   - dim_prestasi.csv
   - dim_beasiswa.csv
   - dim_tanggal.csv
+
+### 🛠️ Misi 2 — Desain Fisikal & Development
+
+**Deliverables:**
+
+* SQL DDL (Create Fact & Dimension)
+* Indexing strategy (Clustered / Non-clustered)
+* Partitioning pada Fact tables
+* Implementasi ETL (contoh insert data)
+* Data Quality (Audit Table + SP + Alerts)
+* Performance Optimization & Testing
+* Dokumentasi kinerja & rekomendasi
+
+Status: **Selesai ✓**
+
+**Teknologi yang digunakan:**
+
+* Microsoft SQL Server
+* SQL Server Management Studio
+* (Opsional) SSIS untuk paket ETL
+
+---
+
+## 📁 Struktur Folder Repository (rekomendasi)
+
+```
+📦 data-warehouse-kemahasiswaan-itera
+│
+├─ 📁 business_requirements/
+├─ 📁 data_sources/
+├─ 📁 conceptual_design/
+├─ 📁 logical_design/
+├─ 📁 data_dictionary/
+│
+├─ 📁 physical_design/
+├─ 📁 etl/
+├─ 📁 data_quality/
+├─ 📁 performance_test/
+│
+└─ README.md
+```
+
+---
+
+## 📄 Contoh Kode — SQL utama (singkat)
+
+> Catatan: sesuaikan nama file dan tipe kolom di environment kalian.
+
+### 01_Create_Database.sql
+
+```sql
+CREATE DATABASE DM_Kemahasiswaan_DW
+ON PRIMARY
+(
+    NAME = N'DM_Kemahasiswaan_DW_Data',
+    FILENAME = N'D:\\Data\\DM_Kemahasiswaan_DW_Data.mdf',
+    SIZE = 1GB,
+    MAXSIZE = UNLIMITED ,
+    FILEGROWTH = 256MB
+)
+LOG ON
+(
+    NAME = N'DM_Kemahasiswaan_DW_Log',
+    FILENAME = N'E:\\Logs\\DM_Kemahasiswaan_DW_Log.ldf',
+    SIZE = 256MB,
+    MAXSIZE = 2GB,
+    FILEGROWTH = 64MB
+);
+GO
+USE DM_Kemahasiswaan_DW;
+GO
+```
+
+### 02_Create_Dimensions.sql (potongan)
+
+```sql
+CREATE TABLE dbo.Dim_Tanggal (
+    Tanggal_SK INT PRIMARY KEY NOT NULL,
+    FullDate DATE NOT NULL,
+    DayNumberOfWeek TINYINT NOT NULL,
+    DayName VARCHAR(10) NOT NULL,
+    MonthName VARCHAR(10) NOT NULL,
+    MonthNumber TINYINT NOT NULL,
+    Quarter TINYINT NOT NULL,
+    QuarterName VARCHAR(6) NOT NULL,
+    Tahun SMALLINT NOT NULL,
+    IsWeekend BIT NOT NULL,
+    Semester VARCHAR(10) NULL
+);
+GO
+
+CREATE TABLE dbo.Dim_Mahasiswa (
+    Mahasiswa_SK INT IDENTITY(1,1) PRIMARY KEY NOT NULL,
+    NIM VARCHAR(20) UNIQUE NOT NULL,
+    Nama_Mahasiswa VARCHAR(100) NOT NULL,
+    Fakultas VARCHAR(100) NOT NULL,
+    Program_Studi VARCHAR(100) NOT NULL,
+    Tahun_Masuk SMALLINT NOT NULL,
+    Status_Mahasiswa VARCHAR(20) NOT NULL,
+    EffectiveDate DATE NOT NULL DEFAULT GETDATE(),
+    ExpiryDate DATE NULL,
+    IsCurrent BIT NOT NULL DEFAULT 1,
+    CreatedDate DATETIME DEFAULT GETDATE()
+);
+GO
+```
+
+### 03_Create_Facts.sql (potongan)
+
+```sql
+CREATE TABLE dbo.Fact_Partisipasi_Kegiatan (
+    Partisipasi_SK BIGINT IDENTITY(1,1) PRIMARY KEY NOT NULL,
+    Tanggal_SK INT NOT NULL,
+    Mahasiswa_SK INT NOT NULL,
+    Kegiatan_SK INT NOT NULL,
+    Organisasi_SK INT NULL,
+    Jumlah_Partisipan INT NOT NULL DEFAULT 1,
+    Partisipasi_ID VARCHAR(50) NOT NULL,
+    SourceSystem VARCHAR(50) NOT NULL,
+    LoadDate DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_Fact_Partisipasi_Tanggal FOREIGN KEY (Tanggal_SK) REFERENCES dbo.Dim_Tanggal(Tanggal_SK)
+);
+GO
+
+CREATE TABLE dbo.Fact_Dana_Kegiatan (
+    Dana_SK BIGINT IDENTITY(1,1) PRIMARY KEY NOT NULL,
+    Tanggal_SK INT NOT NULL,
+    Kegiatan_SK INT NOT NULL,
+    Organisasi_SK INT NULL,
+    Jumlah_Pengajuan DECIMAL(12,2) NOT NULL,
+    Jumlah_Realisasi DECIMAL(12,2) NOT NULL,
+    Transaksi_ID VARCHAR(50) NOT NULL,
+    SourceSystem VARCHAR(50) NOT NULL,
+    LoadDate DATETIME DEFAULT GETDATE()
+);
+GO
+```
+
+### Indexing & Columnstore (contoh)
+
+```sql
+CREATE CLUSTERED INDEX CIX_Fact_Partisipasi_TanggalSK
+ON dbo.Fact_Partisipasi_Kegiatan(Tanggal_SK, Partisipasi_SK);
+GO
+
+CREATE NONCLUSTERED INDEX IX_Fact_Partisipasi_Mahasiswa
+ON dbo.Fact_Partisipasi_Kegiatan(Mahasiswa_SK)
+INCLUDE (Kegiatan_SK);
+GO
+
+CREATE NONCLUSTERED COLUMNSTORE INDEX NCCIX_Fact_Partisipasi
+ON dbo.Fact_Partisipasi_Kegiatan (Tanggal_SK, Mahasiswa_SK, Kegiatan_SK, Organisasi_SK, Jumlah_Partisipan);
+GO
+```
+
+### ETL Stored Procedure (contoh sederhana)
+
+```sql
+CREATE PROCEDURE dbo.usp_Load_Dim_Mahasiswa
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- expire older records
+    UPDATE d
+    SET ExpiryDate = GETDATE(), IsCurrent = 0
+    FROM dbo.Dim_Mahasiswa d
+    INNER JOIN stg.Mahasiswa s ON d.NIM = s.NIM
+    WHERE d.IsCurrent = 1
+    AND (d.Status_Mahasiswa <> s.Status_Mahasiswa OR d.Program_Studi <> s.Program_Studi);
+
+    INSERT INTO dbo.Dim_Mahasiswa (NIM, Nama_Mahasiswa, Fakultas, Program_Studi, Tahun_Masuk, Status_Mahasiswa, EffectiveDate, IsCurrent)
+    SELECT s.NIM, UPPER(TRIM(s.Nama_Mahasiswa)), s.Fakultas, s.Program_Studi, s.Tahun_Masuk, s.Status_Mahasiswa, GETDATE(), 1
+    FROM stg.Mahasiswa s
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.Dim_Mahasiswa d WHERE d.NIM = s.NIM AND d.IsCurrent = 1);
+END;
+GO
+```
+
+### Data Quality Stored Procedures (singkat)
+
+```sql
+-- AuditLog table
+IF OBJECT_ID('dbo.AuditLog','U') IS NULL
+CREATE TABLE dbo.AuditLog(
+    AuditID INT IDENTITY(1,1) PRIMARY KEY,
+    EventDate DATETIME DEFAULT GETDATE(),
+    Component NVARCHAR(50),
+    EventType NVARCHAR(50),
+    ObjectName NVARCHAR(100),
+    Message NVARCHAR(MAX),
+    RowsAffected INT,
+    Status NVARCHAR(20)
+);
+GO
+```
+
+### Test Queries (contoh)
+
+```sql
+-- Query 1: Total mahasiswa aktif dan kegiatan per Fakultas
+SELECT dm.Fakultas, dk.Jenis_Kegiatan,
+       COUNT(DISTINCT f.Mahasiswa_SK) AS TotalMahasiswaAktif,
+       COUNT(f.Partisipasi_SK) AS TotalPartisipasi
+FROM dbo.Fact_Partisipasi_Kegiatan f
+JOIN dbo.Dim_Mahasiswa dm ON f.Mahasiswa_SK = dm.Mahasiswa_SK AND dm.IsCurrent = 1
+JOIN dbo.Dim_Kegiatan dk ON f.Kegiatan_SK = dk.Kegiatan_SK
+JOIN dbo.Dim_Tanggal dt ON f.Tanggal_SK = dt.Tanggal_SK
+WHERE dt.Tahun = 2024
+GROUP BY dm.Fakultas, dk.Jenis_Kegiatan
+ORDER BY dm.Fakultas, TotalPartisipasi DESC;
+```
+
+---
