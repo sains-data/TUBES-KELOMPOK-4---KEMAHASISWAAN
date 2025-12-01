@@ -1,0 +1,167 @@
+USE DM_Kemahasiswaan_DW;
+GO
+
+/* 0. CREATE TABLE LOG (JIKA BELUM ADA) */
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ETL_Log')
+BEGIN
+    CREATE TABLE ETL_Log (
+        LogID INT IDENTITY(1,1) PRIMARY KEY,
+        ETL_Procedure VARCHAR(200),
+        Status VARCHAR(20),
+        ErrorMessage VARCHAR(MAX) NULL,
+        LogDate DATETIME DEFAULT GETDATE()
+    );
+END;
+GO
+
+
+/* 1. ETL DIM_PROGRAM (SCD Type 1: Update jika Nama/Fakultas berubah) */
+BEGIN TRY
+    PRINT 'Memulai ETL DIM_PROGRAM (SCD Type 1)...';
+    BEGIN TRANSACTION;
+
+    -- Extract
+    SELECT 
+        ProgramCode,
+        ProgramName,
+        Faculty
+    INTO #Temp_Program
+    FROM stg.Program -- Asumsi Staging Table
+    WHERE ProgramCode IS NOT NULL;
+
+    -- Transform
+    UPDATE #Temp_Program
+    SET ProgramName = UPPER(LTRIM(RTRIM(ProgramName))),
+        Faculty = UPPER(LTRIM(RTRIM(Faculty)));
+
+    -- Load
+    MERGE INTO dbo.Dim_Program AS Target
+    USING #Temp_Program AS Source
+        ON Target.ProgramCode = Source.ProgramCode
+    WHEN MATCHED AND (Target.ProgramName <> Source.ProgramName OR Target.Faculty <> Source.Faculty) THEN
+        UPDATE SET
+            Target.ProgramName = Source.ProgramName,
+            Target.Faculty = Source.Faculty
+    WHEN NOT MATCHED THEN
+        INSERT (ProgramCode, ProgramName, Faculty)
+        VALUES (Source.ProgramCode, Source.ProgramName, Source.Faculty);
+
+    DROP TABLE #Temp_Program;
+
+    INSERT INTO ETL_Log (ETL_Procedure, Status, LogDate)
+    VALUES ('Load_DimProgram', 'SUCCESS', GETDATE());
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+    INSERT INTO ETL_Log (ETL_Procedure, Status, ErrorMessage, LogDate)
+    VALUES ('Load_DimProgram', 'FAILED', ERROR_MESSAGE(), GETDATE());
+END CATCH;
+GO
+
+
+/* 2. ETL DIM_STUDENT (SCD Type 2: Expire & Insert jika Status/Prodi berubah) */
+BEGIN TRY
+    PRINT 'Memulai ETL DIM_STUDENT (SCD Type 2)...';
+    BEGIN TRANSACTION;
+
+    -- Extract
+    SELECT 
+        NIM,
+        StudentName,
+        Gender,
+        EnrollmentDate,
+        ProgramCode,
+        Status
+    INTO #Temp_Student
+    FROM stg.Student -- Asumsi Staging Table
+    WHERE NIM IS NOT NULL;
+
+    -- Transform & Expire Old Records (SCD Type 2 Logic)
+    -- Kolom pemicu perubahan: StudentName, ProgramCode, Status
+    UPDATE Target
+    SET
+        Target.ExpiryDate = GETDATE(),
+        Target.IsCurrent = 0
+    FROM dbo.Dim_Student AS Target
+    INNER JOIN #Temp_Student AS Source ON Target.NIM = Source.NIM
+    WHERE Target.IsCurrent = 1
+        AND (
+            Target.StudentName <> Source.StudentName
+        OR Target.ProgramCode <> Source.ProgramCode
+        OR Target.Status <> Source.Status
+        );
+
+    -- Load New/Changed Records (INSERT)
+    INSERT INTO dbo.Dim_Student (
+        NIM, StudentName, Gender, EnrollmentDate, ProgramCode, ProgramName, Faculty, EntryYear, Status, EffectiveDate, IsCurrent
+    )
+    SELECT
+        S.NIM,
+        UPPER(TRIM(S.StudentName)),
+        S.Gender,
+        S.EnrollmentDate,
+        S.ProgramCode,
+        P.ProgramName, -- Lookup dari Dim_Program
+        P.Faculty,     -- Lookup dari Dim_Program
+        YEAR(S.EnrollmentDate),
+        S.Status,
+        GETDATE(),
+        1
+    FROM #Temp_Student S
+    LEFT JOIN dbo.Dim_Program P ON S.ProgramCode = P.ProgramCode
+    WHERE NOT EXISTS (
+        -- Hanya masukkan jika NIM belum ada di Dim_Student atau record sebelumnya sudah di-expire
+        SELECT 1
+        FROM dbo.Dim_Student D
+        WHERE D.NIM = S.NIM AND D.IsCurrent = 1
+    );
+
+    DROP TABLE #Temp_Student;
+
+    INSERT INTO ETL_Log (ETL_Procedure, Status, LogDate)
+    VALUES ('Load_DimStudent', 'SUCCESS', GETDATE());
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+    INSERT INTO ETL_Log (ETL_Procedure, Status, ErrorMessage, LogDate)
+    VALUES ('Load_DimStudent', 'FAILED', ERROR_MESSAGE(), GETDATE());
+END CATCH;
+GO
+
+
+/* FUTURE EXTENSION – FACT TABLES (Contoh: Fact_Activity_Participation) */
+   
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    -- Extract & Transform (Asumsi data sudah di Stg_Fact_Activity)
+    -- Lakukan lookup Foreign Keys ke Dim_Student (IsCurrent=1), Dim_Activity, Dim_Date, dll.
+
+    -- Load
+    -- INSERT INTO dbo.Fact_Activity_Participation (...) SELECT ...
+
+    INSERT INTO ETL_Log (ETL_Procedure, Status, LogDate)
+    VALUES ('Load_FactActivityParticipation', 'SUCCESS', GETDATE());
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+    INSERT INTO ETL_Log (ETL_Procedure, Status, ErrorMessage, LogDate)
+    VALUES ('Load_FactActivityParticipation', 'FAILED', ERROR_MESSAGE(), GETDATE());
+END CATCH;
+GO
+
+
+
+/* ETL SELESAI */
+PRINT 'ETL Dimensi Kemahasiswaan Selesai.';
+GO
