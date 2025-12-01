@@ -146,7 +146,6 @@ Meliputi:
 | Misi 1 | ✔ | Selesai |
 | Misi 2 | ✔ | Selesai |
 | Misi 3 | ✔ | Siap Produksi |
-| Dashboard BI (Power BI) | ⏳ | Misi berikutnya |
 
 ---
 
