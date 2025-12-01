@@ -1,0 +1,164 @@
+USE DM_Kemahasiswaan_DW; 
+GO
+
+/* 0. CREATE SCHEMA ETL (PACKAGE ROOT) */
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'etl')
+    EXEC('CREATE SCHEMA etl');
+GO
+
+/* 1. CREATE ETL LOG TABLE */
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ETL_Log')
+BEGIN
+    CREATE TABLE etl.ETL_Log (
+        LogID INT IDENTITY(1,1) PRIMARY KEY,
+        ETL_Procedure VARCHAR(200),
+        Status VARCHAR(20),
+        ErrorMessage VARCHAR(MAX) NULL,
+        LogDate DATETIME DEFAULT GETDATE()
+    );
+END;
+GO
+
+/* 2. PROCEDURE – LOAD DIM PROGRAM (SCD Type 1) */
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE name = 'Load_DimProgram')
+    DROP PROCEDURE etl.Load_DimProgram;
+GO
+
+CREATE PROCEDURE etl.Load_DimProgram
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @ProcName VARCHAR(200) = 'Load_DimProgram';
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Extract & Transform (Asumsi stg.Program sudah ada)
+        SELECT 
+            ProgramCode, 
+            UPPER(LTRIM(RTRIM(ProgramName))) AS ProgramName,
+            UPPER(LTRIM(RTRIM(Faculty))) AS Faculty
+        INTO #Temp_Program
+        FROM stg.Program
+        WHERE ProgramCode IS NOT NULL;
+        
+        -- Load (MERGE untuk INSERT dan UPDATE - SCD Type 1)
+        MERGE INTO dbo.Dim_Program AS T
+        USING #Temp_Program AS S
+            ON T.ProgramCode = S.ProgramCode
+        WHEN MATCHED AND (
+            T.ProgramName <> S.ProgramName OR T.Faculty <> S.Faculty -- Cek perubahan
+        ) THEN
+            UPDATE SET 
+                T.ProgramName = S.ProgramName,
+                T.Faculty = S.Faculty
+        WHEN NOT MATCHED BY TARGET THEN
+            INSERT (ProgramCode, ProgramName, Faculty)
+            VALUES (S.ProgramCode, S.ProgramName, S.Faculty);
+
+        DROP TABLE #Temp_Program;
+
+        INSERT INTO etl.ETL_Log (ETL_Procedure, Status)
+        VALUES (@ProcName, 'SUCCESS');
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+        INSERT INTO etl.ETL_Log (ETL_Procedure, Status, ErrorMessage)
+        VALUES (@ProcName, 'FAILED', ERROR_MESSAGE());
+    END CATCH;
+END;
+GO
+
+/* 3. PROCEDURE – LOAD DIM STUDENT (SCD Type 2) */
+IF EXISTS (SELECT 1 FROM sys.objects WHERE name = 'Load_DimStudent')
+    DROP PROCEDURE etl.Load_DimStudent;
+GO
+
+CREATE PROCEDURE etl.Load_DimStudent
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @ProcName VARCHAR(200) = 'Load_DimStudent';
+    
+    -- Kolom yang memicu SCD Type 2: StudentName, ProgramCode, Status
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- 1. Expire old records (Jika ada perubahan pada kolom pemicu)
+        UPDATE T 
+        SET 
+            T.ExpiryDate = GETDATE(),
+            T.IsCurrent = 0
+        FROM dbo.Dim_Student T
+        INNER JOIN stg.Student S ON T.NIM = S.NIM
+        WHERE T.IsCurrent = 1
+          AND (
+               T.StudentName <> S.StudentName 
+            OR T.ProgramCode <> S.ProgramCode 
+            OR T.Status <> S.Status
+          );
+
+        -- 2. Insert new/updated records (Termasuk data baru dan data yang berubah)
+        INSERT INTO dbo.Dim_Student (
+            NIM, StudentName, Gender, BirthDate, EnrollmentDate, ProgramCode, ProgramName, Faculty, EntryYear, Status, EffectiveDate, IsCurrent
+        )
+        SELECT 
+            S.NIM, 
+            UPPER(TRIM(S.StudentName)),
+            S.Gender, S.BirthDate, S.EnrollmentDate,
+            S.ProgramCode, 
+            P.ProgramName, -- Lookup dari Dim_Program
+            P.Faculty,     -- Lookup dari Dim_Program
+            YEAR(S.EnrollmentDate),
+            S.Status,
+            GETDATE(), -- EffectiveDate
+            1          -- IsCurrent
+        FROM stg.Student S
+        LEFT JOIN dbo.Dim_Program P ON S.ProgramCode = P.ProgramCode
+        WHERE NOT EXISTS (
+            SELECT 1 
+            FROM dbo.Dim_Student D 
+            WHERE D.NIM = S.NIM AND D.IsCurrent = 1
+        );
+
+        INSERT INTO etl.ETL_Log (ETL_Procedure, Status)
+        VALUES (@ProcName, 'SUCCESS');
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+
+        INSERT INTO etl.ETL_Log (ETL_Procedure, Status, ErrorMessage)
+        VALUES (@ProcName, 'FAILED', ERROR_MESSAGE());
+    END CATCH;
+END;
+GO
+
+
+/* 4. MASTER PROCEDURE – MENJALANKAN SEMUA */
+IF EXISTS (SELECT 1 FROM sys.objects WHERE name = 'Master_ETL_Mahasiswa')
+    DROP PROCEDURE etl.Master_ETL_Mahasiswa;
+GO
+
+CREATE PROCEDURE etl.Master_ETL_Mahasiswa
+AS
+BEGIN
+    PRINT 'Memulai ETL Data Mart Kemahasiswaan...';
+
+    -- Step 1: Load Dimensions
+    EXEC etl.Load_DimProgram;
+    EXEC etl.Load_DimStudent;
+    
+    -- TO DO: Tambahkan prosedur untuk Load Fact Tables (e.g., Load_FactActivityParticipation)
+
+    PRINT 'ETL Dimensi Kemahasiswaan selesai.';
+END;
+GO
+
+
+/* ■ END OF PACKAGE */
