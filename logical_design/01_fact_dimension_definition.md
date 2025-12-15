@@ -3,9 +3,7 @@
 | Fact Table | Grain (Tingkat Detail) | Measures (Metrik Numerik) | Additivity | KPI yang Diukur |
 |:---|:---|:---|:---|:---|
 | Fact_Partisipasi_Kegiatan | 1 Mahasiswa ikut 1 Kegiatan, pada 1 Tanggal | Jumlah Partisipan | Additif | Jumlah mahasiswa aktif dalam kegiatan |
-| Fact_Capaian_Prestasi | 1 Prestasi dicapai 1 Mahasiswa, pada 1 Tanggal | Jumlah Penghargaan, Poin Prestasi | Additif/Semi-Additif | Jumlah prestasi mahasiswa |
 | Fact_Dana_Kegiatan | 1 Transaksi Dana untuk 1 Kegiatan | Jumlah Pengajuan, Jumlah Realisasi | Additif | Tingkat efisiensi penggunaan dana |
-| Fact_Penerima_Beasiswa | 1 Mahasiswa penerima 1 Beasiswa, per Periode | Jumlah Penerima, Nominal Bantuan | Additif | Jumlah penerima beasiswa |
 
 ## Identifikasi Dimension Tables
 
